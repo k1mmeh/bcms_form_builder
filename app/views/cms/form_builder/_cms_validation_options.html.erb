@@ -2,6 +2,7 @@
 <% existing_validations = @form_element.custom_form_element_validations -%>
 <% if validations.length > 0 -%>
   <div class="fields text_fields">
+    <input type="hidden" name="<%= block_form %>[_validations]" value="1" />
     <% if cms_options[:label] %>
       <%= f.label method, cms_options[:label] %>
     <% else %>

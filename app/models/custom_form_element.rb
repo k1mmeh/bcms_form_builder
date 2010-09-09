@@ -1,4 +1,5 @@
 class CustomFormElement < ActiveRecord::Base
+  require 'pp'
   include FormBuilder::Helpers
 
   belongs_to :custom_form
@@ -131,16 +132,27 @@ class CustomFormElement < ActiveRecord::Base
   # building of validations on this element via #build_validations
   def attributes=(attribute_hash)
     validations = attribute_hash.delete(:custom_form_element_validations)
-    if validations
-      logger.debug("Validation options passed: #{validations}")
+    # if the _validations value is set - then we are updating the validations, so if none are submitted
+    # that means that we want none.  Else submitting none means no change
+    if attribute_hash[:_validations] == '1'
+      logger.debug("Validation options passed: #{pp(validations)}")
+      self.build_validations(validations)
     end
-    self.build_validations(validations)
 
     new_name = attribute_hash.delete(:name)
     self.name = new_name if new_name
 
     logger.debug("Building #{self.class} attribute for form element")
-    self.custom_form_element_attributes = CustomFormElementAttribute.build_input_attributes(attribute_hash, self.class.config)
+    CustomFormElementAttribute.build_input_attributes(attribute_hash, self.class.config).each do |new_attribute|
+      if existing = custom_form_element_attributes.detect {|att| att.key == new_attribute.key}
+        existing.key = new_attribute.key
+        existing.value = new_attribute.value
+        existing.save
+      else
+        new_attribute.custom_form_element = self
+        new_attribute.save
+      end
+    end
   end
 
   # load_element
